@@ -1,0 +1,6 @@
+-cp src
+-lib heaps
+-lib safety
+-js bin/game.js
+-main game.Main
+--macro nullSafety("game", Strict)
