@@ -57,19 +57,19 @@ class GameState extends State implements IBoard {
 
         if (Key.isPressed(Key.Q)) camera.cycleAngle();
         if (Key.isPressed(Key.E)) camera.cycleAngle(-1);
-        if (Key.isDown(Key.CTRL)) {
+        if (Key.isDown(Key.CTRL) || Key.isDown(Key.TAB) || Key.isDown(Key.SHIFT) || Key.isDown(Key.ALT)) {
             var index = camera.angleIndex();
             var dirs = [0, 2, 1, 3];
-            if (Key.isPressed(Key.NUMPAD_7)) piece.rotate(dirs[(0 + index) % 4]);
-            if (Key.isPressed(Key.NUMPAD_8)) piece.rotate(dirs[(1 + index) % 4]);
-            if (Key.isPressed(Key.NUMPAD_5)) piece.rotate(dirs[(2 + index) % 4]);
-            if (Key.isPressed(Key.NUMPAD_4)) piece.rotate(dirs[(3 + index) % 4]);
+            if (Key.isPressed(Key.NUMPAD_7) || Key.isPressed(Key.I)) piece.rotate(dirs[(0 + index) % 4]);
+            if (Key.isPressed(Key.NUMPAD_8) || Key.isPressed(Key.O)) piece.rotate(dirs[(1 + index) % 4]);
+            if (Key.isPressed(Key.NUMPAD_5) || Key.isPressed(Key.L)) piece.rotate(dirs[(2 + index) % 4]);
+            if (Key.isPressed(Key.NUMPAD_4) || Key.isPressed(Key.K)) piece.rotate(dirs[(3 + index) % 4]);
         } else {
             var offset: Null<Point> = null;
-            if (Key.isPressed(Key.NUMPAD_7)) offset = camera.offsetFromAngle();
-            if (Key.isPressed(Key.NUMPAD_8)) offset = camera.offsetFromAngle(1);
-            if (Key.isPressed(Key.NUMPAD_5)) offset = camera.offsetFromAngle(2);
-            if (Key.isPressed(Key.NUMPAD_4)) offset = camera.offsetFromAngle(3);
+            if (Key.isPressed(Key.NUMPAD_7) || Key.isPressed(Key.I)) offset = camera.offsetFromAngle();
+            if (Key.isPressed(Key.NUMPAD_8) || Key.isPressed(Key.O)) offset = camera.offsetFromAngle(1);
+            if (Key.isPressed(Key.NUMPAD_5) || Key.isPressed(Key.L)) offset = camera.offsetFromAngle(2);
+            if (Key.isPressed(Key.NUMPAD_4) || Key.isPressed(Key.K)) offset = camera.offsetFromAngle(3);
             if (offset != null) piece.move(offset.x, offset.y, offset.z);
         }
         if (Key.isPressed(Key.F4)) reset();
@@ -77,7 +77,7 @@ class GameState extends State implements IBoard {
         camera.update(dt);
         fade_tween.update(dt);
 
-        if (Key.isDown(Key.NUMPAD_0)) fall_timer.elapsed += dt * 7;
+        if (Key.isDown(Key.NUMPAD_0) || Key.isDown(Key.QWERTY_COMMA)) fall_timer.elapsed += dt * 7;
         if (fall_timer.update(dt))
             if (piece.move(0, 0, -1))
                 nextPiece();
