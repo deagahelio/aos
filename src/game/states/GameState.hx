@@ -14,6 +14,8 @@ import hxd.Res;
 
 class GameState extends State implements IBoard {
     static var SPAWN_HEIGHT = 10;
+    static var CAMERA_HEIGHT = 20;
+    static var CAMERA_TARGET_HEIGHT = 5;
     var bg_scene: h2d.Scene;
     var bg_tile: Tile;
     var bg: Bitmap;
@@ -22,6 +24,9 @@ class GameState extends State implements IBoard {
     var cam_angle = {x: -1, y: -1};
     var cam_angle_real = {x: -1., y: -1.};
     var cam_angle_tween: Null<Timer>;
+    var cam_shake = new Vector();
+    var cam_shake_timer: Null<Timer>;
+    var cam_shake_mult = .25;
     var piece: Piece;
     var last_piece_color: Int;
     var fall_timer = new Timer(2, true);
@@ -50,8 +55,8 @@ class GameState extends State implements IBoard {
         last_piece_color = Std.random(7) + 2;
         piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, last_piece_color);
 
-        s3d.camera.pos.z = 20;
-        s3d.camera.target.z = 5;
+        s3d.camera.pos.z = CAMERA_HEIGHT;
+        s3d.camera.target.z = CAMERA_TARGET_HEIGHT;
     }
     
     override function update(dt: Float) {
@@ -139,8 +144,13 @@ class GameState extends State implements IBoard {
             reset();
         }
 
-        s3d.camera.pos.x = Math.sin(time) + cam_dist * cam_angle_real.x;
-        s3d.camera.pos.y = Math.cos(time) + cam_dist * cam_angle_real.y;
+        if (cam_shake_timer != null) cam_shake_timer.sure().update(dt);
+
+        s3d.camera.pos.x = Math.sin(time) + cam_dist * cam_angle_real.x + cam_shake.x;
+        s3d.camera.pos.y = Math.cos(time) + cam_dist * cam_angle_real.y + cam_shake.y;
+        s3d.camera.pos.z = CAMERA_HEIGHT + cam_shake.z;
+        s3d.camera.target = cam_shake.clone();
+        s3d.camera.target.z += CAMERA_TARGET_HEIGHT;
         if (cam_angle_tween != null) cam_angle_tween.sure().update(dt);
         if (fade_tween != null) fade_tween.sure().update(dt);
 
@@ -166,6 +176,13 @@ class GameState extends State implements IBoard {
 
         piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, new_color);
         last_piece_color = new_color;
+
+        cam_shake_timer = new Timer(.1, false, function(_) {
+            cam_shake.set();
+            cam_shake_timer = null;
+        }, function(_) {
+            cam_shake.set(Math.random() * cam_shake_mult, Math.random() * cam_shake_mult, Math.random() * cam_shake_mult);
+        });
     }
 
     override function render(e: h3d.Engine) {
