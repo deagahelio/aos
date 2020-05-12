@@ -149,7 +149,7 @@ class GameState extends State implements IBoard {
             if (piece.move(0, 0, -1))
                 nextPiece();
 
-        trace(piece.blocks);
+        piece.update(dt);
     }
 
     function nextPiece() {

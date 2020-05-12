@@ -9,12 +9,14 @@ import h3d.prim.Cube;
 class Block {
     static var primitive = new Cube(1, 1, 1);
     static var blocks = [];
+    public var scene: Scene;
     public var pos: Point;
     public var x(get, set): Float;
     public var y(get, set): Float;
     public var z(get, set): Float;
     public var mesh: Mesh;
     public var color: Int;
+    public var ghost: Bool;
 
     function get_x() return pos.x;
     function get_y() return pos.y;
@@ -32,18 +34,28 @@ class Block {
             blocks.push(Texture.fromPixels(all_blocks.sub(i * 32, 0, 32, 32)));
     }
 
-    public function new(scene: Scene, x=0., y=0., z=0., color=0, ghost=false) {
+    public function new(scene: Scene, x=0., y=0., z=0., color=0, ghost=false, ?mesh_override) {
         pos = new Point(x, y, z);
-        mesh = new Mesh(primitive, scene);
+        this.scene = scene;
         this.color = color;
+        this.ghost = ghost;
 
-        mesh.setPosition(x, y, z);
-        mesh.material.texture = blocks[color];
-        mesh.material.texture.filter = Nearest;
-        if (ghost)
-            mesh.material.color.setColor(0x80FFFFFF);
-        mesh.material.blendMode = Alpha;
-        mesh.material.shadows = false;
+        if (mesh_override == null) {
+            mesh = new Mesh(primitive, scene);
+            mesh.setPosition(x, y, z);
+            mesh.material.texture = blocks[color];
+            mesh.material.texture.filter = Nearest;
+            if (ghost)
+                mesh.material.color.setColor(0x80FFFFFF);
+            mesh.material.blendMode = Alpha;
+            mesh.material.shadows = false;
+        } else {
+            mesh = mesh_override;
+        }
+    }
+
+    public function clone() {
+        return new Block(scene, x, y, z, color, ghost, mesh);
     }
 
     public function syncPos() {
