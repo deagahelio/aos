@@ -14,6 +14,8 @@ using Safety;
 
 class GameState extends State implements IBoard {
     static var SPAWN_HEIGHT = 10;
+    static var PLATFORM_RADIUS = 2;
+    static var PLATFORM_AREA = Math.pow(PLATFORM_RADIUS * 2 + 1, 2);
     var bg_scene: h2d.Scene;
     var bg_tile: Tile;
     var bg: Bitmap;
@@ -38,8 +40,8 @@ class GameState extends State implements IBoard {
 
         s3d.lightSystem.ambientLight.setColor(0x909090);
 
-        for (x in -2...3) {
-            for (y in -2...3) {
+        for (x in -PLATFORM_RADIUS...PLATFORM_RADIUS + 1) {
+            for (y in -PLATFORM_RADIUS...PLATFORM_RADIUS + 1) {
                 blocks.push(new Block(s3d, x, y));
             }
         }
@@ -98,7 +100,36 @@ class GameState extends State implements IBoard {
         piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, new_color);
         last_piece_color = new_color;
 
+        checkLines();
+
         camera.shake_timer.reset();
+    }
+
+    function checkLines() {
+        for (z in 1...10) {
+            var layer = blocks.filter(function(block) {
+                return
+                    block.z == z &&
+                    -PLATFORM_RADIUS <= block.x &&
+                    block.x <= PLATFORM_RADIUS &&
+                    -PLATFORM_RADIUS <= block.y &&
+                    block.y <= PLATFORM_RADIUS;
+            });
+
+            if (layer.length == PLATFORM_AREA) {
+                for (block in layer) {
+                    block.remove();
+                    blocks.remove(block);
+                }
+
+                for (block in blocks) {
+                    if (block.z > z) {
+                        block.z--;
+                        block.syncPos();
+                    }
+                }
+            }
+        }
     }
 
     override function render(e: h3d.Engine) {
@@ -115,8 +146,8 @@ class GameState extends State implements IBoard {
             }
 
             blocks = [];
-            for (x in -2...3) {
-                for (y in -2...3) {
+            for (x in -PLATFORM_RADIUS...PLATFORM_RADIUS + 1) {
+                for (y in -PLATFORM_RADIUS...PLATFORM_RADIUS + 1) {
                     blocks.push(new Block(s3d, x, y, 0, 0));
                 }
             }
