@@ -1,7 +1,5 @@
 package game.states;
 
-using Safety;
-
 import game.utils.Timer;
 import game.utils.Tween;
 import game.Block;
@@ -12,21 +10,15 @@ import h3d.Vector;
 import h3d.scene.fwd.DirLight;
 import hxd.Res;
 
+using Safety;
+
 class GameState extends State implements IBoard {
     static var SPAWN_HEIGHT = 10;
-    static var CAMERA_HEIGHT = 20;
-    static var CAMERA_TARGET_HEIGHT = 5;
     var bg_scene: h2d.Scene;
     var bg_tile: Tile;
     var bg: Bitmap;
     public var blocks: Array<Block> = [];
-    var cam_dist: Float = 20;
-    var cam_angle = {x: -1, y: -1};
-    var cam_angle_real = {x: -1., y: -1.};
-    var cam_angle_tween = Timer.dummy();
-    var cam_shake = new Vector();
-    var cam_shake_timer: Timer;
-    var cam_shake_mult = .25;
+    var camera: CameraController;
     var piece: Piece;
     var last_piece_color: Int;
     var fall_timer = new Timer(2, true);
@@ -52,112 +44,36 @@ class GameState extends State implements IBoard {
             }
         }
 
+        camera = new CameraController(s3d.camera);
+
         last_piece_color = Std.random(7) + 2;
-        piece = new Piece(this.unsafe(), s3d, 0, 0, SPAWN_HEIGHT, last_piece_color);
-
-        s3d.camera.pos.z = CAMERA_HEIGHT;
-        s3d.camera.target.z = CAMERA_TARGET_HEIGHT;
-
-        cam_shake_timer = new Timer(.1, false, function(_) {
-            cam_shake.set();
-        }, function(_) {
-            cam_shake.set(Math.random() * cam_shake_mult, Math.random() * cam_shake_mult, Math.random() * cam_shake_mult);
-        }, true);
+        piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, last_piece_color);
     }
-    
+
     override function update(dt: Float) {
         super.update(dt);
 
-        function cycleCamAngle(times=1, tween=true) {
-            var old_cam_angle = {x: cam_angle.x, y: cam_angle.y};
-
-            for (_ in 0...times) {
-                switch (cam_angle) {
-                    case {x: -1, y: -1}: cam_angle.x = 1;
-                    case {x:  1, y: -1}: cam_angle.y = 1;
-                    case {x:  1, y:  1}: cam_angle.x = -1;
-                    case {x: -1, y:  1}: cam_angle.y = -1;
-                    default: throw "???";
-                }
-            }
-
-            if (tween) {
-                cam_angle_tween = new Timer(.25, false, null, function(timer) {
-                    cam_angle_real.x = Tween.linear(timer.elapsed, old_cam_angle.x, cam_angle.x - old_cam_angle.x, timer.duration);
-                    cam_angle_real.y = Tween.linear(timer.elapsed, old_cam_angle.y, cam_angle.y - old_cam_angle.y, timer.duration);
-                });
-            }
-        }
-
-        function offsetFromAngle() {
-            switch (cam_angle) {
-                case {x: -1, y: -1}: return {x:  1, y:  0};
-                case {x:  1, y: -1}: return {x:  0, y:  1};
-                case {x:  1, y:  1}: return {x: -1, y:  0};
-                case {x: -1, y:  1}: return {x:  0, y: -1};
-                default: throw "???";
-            }
-        }
-
-        function angleIndex() {
-            switch (cam_angle) {
-                case {x: -1, y: -1}: return 0;
-                case {x:  1, y: -1}: return 1;
-                case {x:  1, y:  1}: return 2;
-                case {x: -1, y:  1}: return 3;
-                default: throw "???";
-            }
-        }
-
-        if (Key.isPressed(Key.Q)) {
-            cycleCamAngle();
-        }
-        if (Key.isPressed(Key.E)) {
-            cycleCamAngle(3);
-        }
+        if (Key.isPressed(Key.Q)) camera.cycleAngle();
+        if (Key.isPressed(Key.E)) camera.cycleAngle(-1);
         if (Key.isDown(Key.CTRL)) {
-            var index = angleIndex();
+            var index = camera.angleIndex();
             var dirs = [0, 2, 1, 3];
             if (Key.isPressed(Key.NUMPAD_7)) piece.rotate(dirs[(0 + index) % 4]);
             if (Key.isPressed(Key.NUMPAD_8)) piece.rotate(dirs[(1 + index) % 4]);
             if (Key.isPressed(Key.NUMPAD_5)) piece.rotate(dirs[(2 + index) % 4]);
             if (Key.isPressed(Key.NUMPAD_4)) piece.rotate(dirs[(3 + index) % 4]);
         } else {
-            if (Key.isPressed(Key.NUMPAD_7)) {
-                var offset = offsetFromAngle();
-                piece.move(offset.x, offset.y, 0);
-            }
-            if (Key.isPressed(Key.NUMPAD_8)) {
-                cycleCamAngle(1, false);
-                var offset = offsetFromAngle();
-                cycleCamAngle(3, false);
-                piece.move(offset.x, offset.y, 0);
-            }
-            if (Key.isPressed(Key.NUMPAD_5)) {
-                cycleCamAngle(2, false);
-                var offset = offsetFromAngle();
-                cycleCamAngle(2, false);
-                piece.move(offset.x, offset.y, 0);
-            }
-            if (Key.isPressed(Key.NUMPAD_4)) {
-                cycleCamAngle(3, false);
-                var offset = offsetFromAngle();
-                cycleCamAngle(1, false);
-                piece.move(offset.x, offset.y, 0);
-            }
+            var offset: Null<Point> = null;
+            if (Key.isPressed(Key.NUMPAD_7)) offset = camera.offsetFromAngle();
+            if (Key.isPressed(Key.NUMPAD_8)) offset = camera.offsetFromAngle(1);
+            if (Key.isPressed(Key.NUMPAD_5)) offset = camera.offsetFromAngle(2);
+            if (Key.isPressed(Key.NUMPAD_4)) offset = camera.offsetFromAngle(3);
+            if (offset != null) piece.move(offset.x, offset.y, offset.z);
         }
-        if (Key.isPressed(Key.F4)) {
-            reset();
-        }
+        if (Key.isPressed(Key.F4)) reset();
 
-        cam_shake_timer.update(dt);
-        s3d.camera.pos.x = Math.sin(time) + cam_dist * cam_angle_real.x + cam_shake.x;
-        s3d.camera.pos.y = Math.cos(time) + cam_dist * cam_angle_real.y + cam_shake.y;
-        s3d.camera.pos.z = CAMERA_HEIGHT + cam_shake.z;
-        s3d.camera.target = cam_shake.clone();
-        s3d.camera.target.z += CAMERA_TARGET_HEIGHT;
-        cam_angle_tween.update(dt);
-        if (fade_tween != null) fade_tween.sure().update(dt);
+        camera.update(dt);
+        fade_tween.update(dt);
 
         if (Key.isDown(Key.NUMPAD_0)) fall_timer.elapsed += dt * 7;
         if (fall_timer.update(dt))
@@ -182,7 +98,7 @@ class GameState extends State implements IBoard {
         piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, new_color);
         last_piece_color = new_color;
 
-        cam_shake_timer.reset();
+        camera.shake_timer.reset();
     }
 
     override function render(e: h3d.Engine) {
@@ -209,9 +125,7 @@ class GameState extends State implements IBoard {
             last_piece_color = piece.color;
             fall_timer.reset();
 
-            cam_angle = {x: -1, y: -1};
-            cam_angle_real = {x: -1., y: -1.};
-            cam_angle_tween = new Timer(0);
+            camera = new CameraController(s3d.camera);
 
             fade_tween = new Timer(.5, false, null, function(timer) {
                 for (block in blocks.concat(piece.blocks).concat(piece.ghost_blocks)) {

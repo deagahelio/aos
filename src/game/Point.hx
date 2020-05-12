@@ -1,7 +1,7 @@
 package game;
 
 @:forward abstract Point(h3d.col.Point) from h3d.col.Point to h3d.col.Point {
-    public inline function new(x, y, z) {
+    public inline function new(x=0., y=0., z=0.) {
         this = new h3d.col.Point(x, y, z);
     }
 
