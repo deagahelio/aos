@@ -38,7 +38,6 @@ class CameraController {
         camera.target.z = TARGET_HEIGHT;
 
         angle_tween = new Timer(.25, false, null, function(timer) {
-            trace(angle);
             angle_real.x = Tween.linear(timer.elapsed, last_angle.x, angle.x - last_angle.x, timer.duration);
             angle_real.y = Tween.linear(timer.elapsed, last_angle.y, angle.y - last_angle.y, timer.duration);
         }, true);
