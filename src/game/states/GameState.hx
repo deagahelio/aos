@@ -23,14 +23,14 @@ class GameState extends State implements IBoard {
     var cam_dist: Float = 20;
     var cam_angle = {x: -1, y: -1};
     var cam_angle_real = {x: -1., y: -1.};
-    var cam_angle_tween: Null<Timer>;
+    var cam_angle_tween = Timer.dummy();
     var cam_shake = new Vector();
-    var cam_shake_timer: Null<Timer>;
+    var cam_shake_timer: Timer;
     var cam_shake_mult = .25;
     var piece: Piece;
     var last_piece_color: Int;
     var fall_timer = new Timer(2, true);
-    var fade_tween: Null<Timer>;
+    var fade_tween = Timer.dummy();
 
     public function new() {
         super();
@@ -53,10 +53,16 @@ class GameState extends State implements IBoard {
         }
 
         last_piece_color = Std.random(7) + 2;
-        piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, last_piece_color);
+        piece = new Piece(this.unsafe(), s3d, 0, 0, SPAWN_HEIGHT, last_piece_color);
 
         s3d.camera.pos.z = CAMERA_HEIGHT;
         s3d.camera.target.z = CAMERA_TARGET_HEIGHT;
+
+        cam_shake_timer = new Timer(.1, false, function(_) {
+            cam_shake.set();
+        }, function(_) {
+            cam_shake.set(Math.random() * cam_shake_mult, Math.random() * cam_shake_mult, Math.random() * cam_shake_mult);
+        }, true);
     }
     
     override function update(dt: Float) {
@@ -144,14 +150,13 @@ class GameState extends State implements IBoard {
             reset();
         }
 
-        if (cam_shake_timer != null) cam_shake_timer.sure().update(dt);
-
+        cam_shake_timer.update(dt);
         s3d.camera.pos.x = Math.sin(time) + cam_dist * cam_angle_real.x + cam_shake.x;
         s3d.camera.pos.y = Math.cos(time) + cam_dist * cam_angle_real.y + cam_shake.y;
         s3d.camera.pos.z = CAMERA_HEIGHT + cam_shake.z;
         s3d.camera.target = cam_shake.clone();
         s3d.camera.target.z += CAMERA_TARGET_HEIGHT;
-        if (cam_angle_tween != null) cam_angle_tween.sure().update(dt);
+        cam_angle_tween.update(dt);
         if (fade_tween != null) fade_tween.sure().update(dt);
 
         if (Key.isDown(Key.NUMPAD_0)) fall_timer.elapsed += dt * 7;
@@ -177,12 +182,7 @@ class GameState extends State implements IBoard {
         piece = new Piece(this, s3d, 0, 0, SPAWN_HEIGHT, new_color);
         last_piece_color = new_color;
 
-        cam_shake_timer = new Timer(.1, false, function(_) {
-            cam_shake.set();
-            cam_shake_timer = null;
-        }, function(_) {
-            cam_shake.set(Math.random() * cam_shake_mult, Math.random() * cam_shake_mult, Math.random() * cam_shake_mult);
-        });
+        cam_shake_timer.reset();
     }
 
     override function render(e: h3d.Engine) {
@@ -191,7 +191,7 @@ class GameState extends State implements IBoard {
     }
 
     function reset() {
-        if (fade_tween != null) return;
+        if (!fade_tween.finished) return;
 
         fade_tween = new Timer(.5, false, function(timer) {
             for (block in blocks.concat(piece.blocks).concat(piece.ghost_blocks)) {
@@ -211,11 +211,9 @@ class GameState extends State implements IBoard {
 
             cam_angle = {x: -1, y: -1};
             cam_angle_real = {x: -1., y: -1.};
-            cam_angle_tween = null;
+            cam_angle_tween = new Timer(0);
 
-            fade_tween = new Timer(.5, false, function(_) {
-                fade_tween = null;
-            }, function(timer) {
+            fade_tween = new Timer(.5, false, null, function(timer) {
                 for (block in blocks.concat(piece.blocks).concat(piece.ghost_blocks)) {
                     block.mesh.setScale(Tween.linear(timer.elapsed, 0, 1, timer.duration));
                 }

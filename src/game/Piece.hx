@@ -4,15 +4,13 @@ import game.utils.Tween;
 import game.utils.Timer;
 import h3d.scene.Scene;
 
-using Safety;
-
 class Piece {
     public var blocks: Array<Block> = [];
     public var ghost_blocks: Array<Block> = [];
     public var color: Int;
     public var scene: Scene;
     var last_blocks: Array<Block> = [];
-    var tween_timer: Null<Timer>;
+    var tween_timer: Timer;
     var board: IBoard;
 
     public function new(board, scene, x, y, z, color) {
@@ -61,11 +59,22 @@ class Piece {
             block.syncPos();
         }
 
+        tween_timer = new Timer(.1, false, null, function(timer) {
+            for (i in 0...blocks.length) {
+                var block = blocks[i];
+                var last_block = last_blocks[i];
+
+                block.mesh.x = Tween.linear(timer.elapsed, last_block.x, block.x - last_block.x, .1);
+                block.mesh.y = Tween.linear(timer.elapsed, last_block.y, block.y - last_block.y, .1);
+                block.mesh.z = Tween.linear(timer.elapsed, last_block.z, block.z - last_block.z, .1);
+            }
+        }, true);
+
         updateGhost();
     }
 
     public function update(dt) {
-        if (tween_timer != null) tween_timer.sure().update(dt);
+        tween_timer.update(dt);
     }
 
     function updateGhost() {
@@ -95,8 +104,7 @@ class Piece {
             last_blocks.push(block.clone());
             block.pos += new Point(oX, oY, oZ);
         }
-
-        setTween();
+        tween_timer.reset();
         
         updateGhost();
         return false;
@@ -136,7 +144,7 @@ class Piece {
         if (collide && willCollide(0, 0, 0)) {
             rotate(dir, false); rotate(dir, false); rotate(dir, false);
         } else {
-            setTween();
+            tween_timer.reset();
         }
 
         updateGhost();
@@ -150,21 +158,6 @@ class Piece {
                     return true;
 
         return false;
-    }
-
-    function setTween() {
-        tween_timer = new Timer(.1, false, function(_) {
-            tween_timer = null;
-        }, function(timer) {
-            for (i in 0...blocks.length) {
-                var block = blocks[i];
-                var last_block = last_blocks[i];
-
-                block.mesh.x = Tween.linear(timer.elapsed, last_block.x, block.x - last_block.x, .1);
-                block.mesh.y = Tween.linear(timer.elapsed, last_block.y, block.y - last_block.y, .1);
-                block.mesh.z = Tween.linear(timer.elapsed, last_block.z, block.z - last_block.z, .1);
-            }
-        });
     }
 
     public function remove() {

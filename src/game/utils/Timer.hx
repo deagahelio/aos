@@ -9,11 +9,16 @@ class Timer {
     var finished_callback: Null<Timer -> Void>;
     var update_callback: Null<Timer -> Void>;
 
-    public function new(duration, repeat=false, ?finished_callback, ?update_callback) {
+    public function new(duration, repeat=false, ?finished_callback, ?update_callback, ?paused) {
         this.duration = duration;
         this.repeat = repeat;
         this.finished_callback = finished_callback;
         this.update_callback = update_callback;
+        if (paused != null) this.paused = paused;
+    }
+
+    public inline static function dummy() {
+        return new Timer(0);
     }
 
     public function update(time: Float): Bool {
